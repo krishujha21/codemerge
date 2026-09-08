@@ -10,7 +10,8 @@ import {
   Trophy,
   LogOut,
   Menu,
-  X
+  X,
+  CheckSquare
 } from 'lucide-react';
 
 const Layout = () => {
@@ -28,6 +29,7 @@ const Layout = () => {
     { to: '/teams', label: 'All Teams', icon: Users },
     { to: '/shortlisted', label: 'Shortlisted', icon: ClipboardList },
     { to: '/checkin', label: 'Check-In', icon: MapPin },
+    { to: '/checkedin-list', label: 'Checked-In Teams', icon: CheckSquare },
     { to: '/attendance?day=1', label: 'Day 1', icon: CalendarDays },
     { to: '/attendance?day=2', label: 'Day 2', icon: CalendarDays },
     { to: '/attendance?day=3', label: 'Day 3', icon: CalendarDays },

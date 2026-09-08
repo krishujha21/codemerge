@@ -13,6 +13,7 @@ import ShortlistedTeams from './pages/ShortlistedTeams';
 import OnGroundCheckin from './pages/OnGroundCheckin';
 import AttendanceTracker from './pages/AttendanceTracker';
 import FinalSelection from './pages/FinalSelection';
+import CheckedInTeams from './pages/CheckedInTeams';
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
@@ -51,6 +52,7 @@ const App = () => {
           <Route path="teams" element={<AllTeams />} />
           <Route path="shortlisted" element={<ShortlistedTeams />} />
           <Route path="checkin" element={<OnGroundCheckin />} />
+          <Route path="checkedin-list" element={<CheckedInTeams />} />
           <Route path="attendance" element={<AttendanceTracker />} />
           <Route path="finals" element={<FinalSelection />} />
         </Route>
