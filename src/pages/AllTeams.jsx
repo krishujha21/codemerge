@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '../api/axios';
-import { Search, Filter, Edit2, ChevronDown, ChevronUp, Mail, Phone, Hash } from 'lucide-react';
+import { Search, Filter, Edit2, ChevronDown, ChevronUp, Mail, Phone, Hash, User, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const domainColors = {
@@ -175,7 +175,6 @@ const AllTeams = () => {
   );
 };
 
-// Also import Users and User from lucide-react above
-import { User } from 'lucide-react';
+
 
 export default AllTeams;
