@@ -2,6 +2,7 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '../api/axios';
 import { Download, Users, CheckCircle } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 const CheckedInTeams = () => {
   const { data: teams = [], isLoading } = useQuery({
@@ -13,8 +14,41 @@ const CheckedInTeams = () => {
     },
   });
 
-  const handlePrint = () => {
-    window.print();
+  const handleExportExcel = () => {
+    if (teams.length === 0) return;
+    
+    // Create Excel friendly data format
+    const excelData = teams.map((team, index) => ({
+      'S.No': index + 1,
+      'Team Name': team.name,
+      'Domain': team.domain,
+      'Leader Name': team.leaderName,
+      'Leader Phone': team.leaderPhone || 'N/A',
+      'Total Members': team.members?.length || 0,
+      'Check-In Time': team.checkInTime ? new Date(team.checkInTime).toLocaleString() : 'N/A',
+      'Members Info': team.members?.map(m => `${m.name} (${m.regNo})`).join(', ') || 'N/A'
+    }));
+
+    // Create worksheet and workbook
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Checked-In Teams");
+
+    // Configure column widths for better formatting
+    const wscols = [
+      {wch: 5},  // S.No
+      {wch: 25}, // Team Name
+      {wch: 30}, // Domain
+      {wch: 20}, // Leader Name
+      {wch: 15}, // Leader Phone
+      {wch: 15}, // Total Members
+      {wch: 20}, // Check-In Time
+      {wch: 60}  // Members Info
+    ];
+    worksheet['!cols'] = wscols;
+
+    // Generate Excel file and trigger download
+    XLSX.writeFile(workbook, `CodeMerge_CheckedIn_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   if (isLoading) {
@@ -37,11 +71,11 @@ const CheckedInTeams = () => {
           <p className="text-slate-400 text-sm mt-1">List of teams physically present at the venue</p>
         </div>
         <button
-          onClick={handlePrint}
-          className="flex items-center px-4 py-2 bg-surface border border-border rounded-lg text-slate-200 hover:bg-slate-800 transition-colors print:hidden"
+          onClick={handleExportExcel}
+          className="flex items-center px-4 py-2 bg-green-600/20 border border-green-500/50 rounded-lg text-green-400 hover:bg-green-600/30 transition-colors print:hidden"
         >
           <Download className="w-4 h-4 mr-2" />
-          Export / Print List
+          Export Excel Sheet
         </button>
       </div>
 
