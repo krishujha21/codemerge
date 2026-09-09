@@ -173,4 +173,15 @@ router.patch('/:id/checkin', async (req, res) => {
   }
 });
 
+// DELETE /api/teams/:id — delete a team
+router.delete('/:id', async (req, res) => {
+  try {
+    const team = await Team.findByIdAndDelete(req.params.id);
+    if (!team) return res.status(404).json({ error: 'Team not found' });
+    res.json({ message: 'Team deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

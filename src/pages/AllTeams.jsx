@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../api/axios';
-import { Search, Filter, Edit2, ChevronDown, ChevronUp, Mail, Phone, Hash, User, Users } from 'lucide-react';
+import { Search, Filter, Edit2, ChevronDown, ChevronUp, Mail, Phone, Hash, User, Users, Trash2, X, Save } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const domainColors = {
@@ -15,6 +15,11 @@ const AllTeams = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [domainFilter, setDomainFilter] = useState('');
   const [expandedTeam, setExpandedTeam] = useState(null);
+  
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingTeam, setEditingTeam] = useState(null);
+
+  const queryClient = useQueryClient();
 
   const { data: teams = [], isLoading } = useQuery({
     queryKey: ['teams'],
@@ -22,6 +27,31 @@ const AllTeams = () => {
       const res = await api.get('/api/teams').catch(() => ({ data: [] }));
       return res.data;
     },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => api.delete(`/api/teams/${id}`),
+    onSuccess: () => {
+      toast.success('Team deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['teams'] });
+    },
+    onError: (err) => {
+      toast.error('Failed to delete team');
+      console.error(err);
+    }
+  });
+
+  const editMutation = useMutation({
+    mutationFn: ({ id, data }) => api.put(`/api/teams/${id}`, data),
+    onSuccess: () => {
+      toast.success('Team updated successfully');
+      setEditModalOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['teams'] });
+    },
+    onError: (err) => {
+      toast.error('Failed to update team');
+      console.error(err);
+    }
   });
 
   const filteredTeams = teams.filter((team) => {
@@ -37,6 +67,31 @@ const AllTeams = () => {
     return matchesSearch && matchesDomain;
   });
 
+  const handleEditClick = (e, team) => {
+    e.stopPropagation();
+    setEditingTeam({
+      teamName: team.name,
+      domain: team.domain,
+      leaderPhone: team.leaderPhone,
+      round1Score: team.round1Score || 0,
+      round2Score: team.round2Score || 0,
+      _id: team._id || team.id
+    });
+    setEditModalOpen(true);
+  };
+
+  const handleDeleteClick = (e, id) => {
+    e.stopPropagation();
+    if (window.confirm('Are you sure you want to delete this team?')) {
+      deleteMutation.mutate(id);
+    }
+  };
+
+  const handleEditSubmit = (e) => {
+    e.preventDefault();
+    editMutation.mutate({ id: editingTeam._id, data: editingTeam });
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -49,7 +104,7 @@ const AllTeams = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="text-2xl font-bold text-slate-100">All Teams</h1>
       </div>
@@ -117,10 +172,16 @@ const AllTeams = () => {
                 </div>
                 <div className="flex items-center gap-3 self-end sm:self-center">
                   <button 
-                    onClick={(e) => { e.stopPropagation(); toast('Edit modal coming soon'); }}
+                    onClick={(e) => handleEditClick(e, team)}
                     className="p-2 text-slate-400 hover:text-primary bg-background rounded-lg border border-border hover:border-primary/50 transition-colors"
                   >
                     <Edit2 className="w-4 h-4" />
+                  </button>
+                  <button 
+                    onClick={(e) => handleDeleteClick(e, team._id || team.id)}
+                    className="p-2 text-slate-400 hover:text-red-500 bg-background rounded-lg border border-border hover:border-red-500/50 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
                   </button>
                   {expandedTeam === team._id ? (
                     <ChevronUp className="w-5 h-5 text-slate-500" />
@@ -171,10 +232,105 @@ const AllTeams = () => {
           ))
         )}
       </div>
+
+      {editModalOpen && editingTeam && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-surface border border-border rounded-xl w-full max-w-lg overflow-hidden flex flex-col">
+            <div className="p-4 border-b border-border flex justify-between items-center bg-background/50">
+              <h2 className="text-lg font-semibold text-slate-100">Edit Team</h2>
+              <button 
+                onClick={() => setEditModalOpen(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-200 rounded-md hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleEditSubmit} className="p-4 sm:p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1.5">Team Name</label>
+                <input
+                  type="text"
+                  value={editingTeam.teamName || ''}
+                  onChange={(e) => setEditingTeam({ ...editingTeam, teamName: e.target.value })}
+                  className="w-full px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:border-primary text-slate-200"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1.5">Domain</label>
+                <select
+                  value={editingTeam.domain || ''}
+                  onChange={(e) => setEditingTeam({ ...editingTeam, domain: e.target.value })}
+                  className="w-full px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:border-primary text-slate-200 appearance-none"
+                  required
+                >
+                  <option value="" disabled>Select Domain</option>
+                  {Object.keys(domainColors).map((domain) => (
+                    <option key={domain} value={domain}>{domain}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1.5">Leader Phone</label>
+                <input
+                  type="text"
+                  value={editingTeam.leaderPhone || ''}
+                  onChange={(e) => setEditingTeam({ ...editingTeam, leaderPhone: e.target.value })}
+                  className="w-full px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:border-primary text-slate-200"
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1.5">Round 1 Score</label>
+                  <input
+                    type="number"
+                    value={editingTeam.round1Score || 0}
+                    onChange={(e) => setEditingTeam({ ...editingTeam, round1Score: Number(e.target.value) })}
+                    className="w-full px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:border-primary text-slate-200"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1.5">Round 2 Score</label>
+                  <input
+                    type="number"
+                    value={editingTeam.round2Score || 0}
+                    onChange={(e) => setEditingTeam({ ...editingTeam, round2Score: Number(e.target.value) })}
+                    className="w-full px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:border-primary text-slate-200"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4 flex justify-end gap-3 border-t border-border mt-6">
+                <button
+                  type="button"
+                  onClick={() => setEditModalOpen(false)}
+                  className="px-4 py-2 text-slate-300 hover:text-white bg-transparent hover:bg-slate-800 rounded-lg transition-colors font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={editMutation.isPending}
+                  className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg transition-colors font-medium flex items-center gap-2 disabled:opacity-50"
+                >
+                  {editMutation.isPending ? 'Saving...' : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      Save Changes
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
-
-
 
 export default AllTeams;
